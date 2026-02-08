@@ -31,6 +31,7 @@ import RHFCustomCalendar from '@/components/RHFCustomCalendar'
 import { IPlanning, planningSchema, planningType } from '@/types/IPlanning'
 import { useTeams } from '@/hooks/useTeams'
 import { useCreatePlanning, useDeletePlanning, usePlannings, useUpdatePlanning } from '@/hooks/usePlanning'
+import { formatDateFR } from '@/utils/formatDateFR'
 
 
 
@@ -392,7 +393,17 @@ export default function Home() {
                         
                         headerStyle={{ fontSize: 10 }}
                         style={{ width:'auto', height: 35 }}
-                        body={(rowData) => rowData?.plannedDate || '-'}
+                        body={(rowData) => formatDateFR(rowData?.plannedDate || '-')}
+                        bodyStyle={{ fontSize: 10 }}
+                    />
+
+                      <Column
+
+                        header="Status"
+                        
+                        headerStyle={{ fontSize: 10 }}
+                        style={{ width:'auto', height: 35 }}
+                        body={(rowData) => rowData.status}
                         bodyStyle={{ fontSize: 10 }}
                     />
 

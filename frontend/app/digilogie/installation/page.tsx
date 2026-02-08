@@ -24,185 +24,32 @@ import { useCustomers } from '@/hooks/useCustomers'
 import FormCalendar from '@/components/FormCalendar'
 import { IProjectDto, IProjects, ProjectFormType, projectSchema } from '@/types/IProject'
 import { useCreateProject, useDeleteProject, useProject, useUpdateProject } from '@/hooks/useProject'
-import { useCreateEquipment, useDeleteEquipment, useEquipment, useUpdateEquipment } from '@/hooks/useEquipment'
-import { CreateEquipment, CreateEquipmentDto, Equipment, EQUIPMENT_CATEGORIES, EQUIPMENT_UNITS, EquipmentSchema } from '@/types/IEquipment'
+import { ISiteDto, ISites, SiteFormType, siteSchema } from '@/types/ISites'
+import { useCreateSites, useDeleteSites, useSites, useSitesByProject, useSitesByProjectExcluding, useUpdateSites } from '@/hooks/useSite'
+import { ActivityType, InterventionType, Scope } from '@/types/IApplication'
+import RHFCustomCalendar from '@/components/RHFCustomCalendar'
+import { IPlanning, planningSchema, planningType } from '@/types/IPlanning'
+import { useTeams } from '@/hooks/useTeams'
+import { useCreatePlanning, useDeletePlanning, usePlannings, useUpdatePlanning } from '@/hooks/usePlanning'
+import { formatDateFR } from '@/utils/formatDateFR'
+import { TabPanel, TabView } from 'primereact/tabview'
+import { useRouter } from 'next/navigation'
 
 
 
 export default function Home() {
     const { data: user } = useCurrentUser()
-    const [visible, setVisible] = useState(false);
-    const [statusForm, setStatusForm] = useState<boolean>(false);
-
-    const [societyId, setSocietyId] = useState<string | null>(null)
-
     const toast = useRef<Toast | null>(null);
+    const router = useRouter();
 
-    const { mutate, isPending, isSuccess, error, reset } = useCreateEquipment()
+    const [rowClick, setRowClick] = useState(true);
 
-    const { mutate: deleteEquipment, isPending: isPending_delete } = useDeleteEquipment();
+    const { data: plannings, isLoading, error: error_list } = usePlannings();
 
-    const { mutate: updateEquipment, isPending: isPending_update, error: errorUpdate } = useUpdateEquipment();
-
-    const { data: equipments, isLoading, error: error_list } = useEquipment();
-
-    const { data: Customers } = useCustomers();
-
-    console.log(equipments)
-
-
-    const { data: Subsidiaries } = useSubsidiaries();
-
-
-
-    // React Hook Form
-    const {
-        control,
-        handleSubmit,
-        reset: resetForm,
-        setValue,
-        watch,
-        formState: { errors, isSubmitting },
-    } = useForm<CreateEquipment>({
-        resolver: zodResolver(EquipmentSchema) as any,
-        defaultValues: {
-            name: '',
-            category: '',
-            model: '',
-            unit: '',
-            vendor: ''
-        },
-    });
-
-
-
-    const actionButtonEdit = (data: IProjects) => {
-        setStatusForm(true);
-        // setValue('customerId', data?.customer?.id || "");
-        // setValue('name', data?.name || "");
-        // setValue('code', data?.code || "");
-        // setValue('startDate', data?.startDate);
-        // setValue('endDate', data?.endDate);
-        setSocietyId(data?.id)
-        setVisible(true);
-
-    }
-
-
-
-
-    // Handle form submission
-    const onSubmit = (data: CreateEquipmentDto) => {
-
-        if (!user?.userId) {
-            alert('User not ready');
-            return;
-        }
-        mutate(data, {
-            onSuccess: () => {
-                resetForm()
-                setTimeout(() => {
-                    setVisible(false)
-                    reset()
-                }, 1500)
-            },
-        })
-    }
-
-    const updatingEquipment = (data: CreateEquipmentDto) => {
-        updateEquipment(
-            { id: societyId || "", updates: data },
-            {
-                onSuccess: () => {
-                    resetForm();
-
-                    toast.current?.show({
-                        severity: 'success',
-                        summary: 'Updated',
-                        detail: 'Society updated successfully',
-                        life: 3000
-                    });
-
-                    setTimeout(() => {
-                        setVisible(false);
-                        reset(); // reset React Query state
-                    }, 1500);
-                },
-                onError: () => {
-                    toast.current?.show({
-                        severity: 'error',
-                        summary: 'Error',
-                        detail: 'Update failed',
-                        life: 3000
-                    });
-                }
-            }
-        );
+    const install = (id: string) => {
+        router.push(`/digilogie/installation/add/${id}`)
     };
 
-
-    // Handle dialog close
-    const handleDialogHide = () => {
-        setVisible(false)
-        setStatusForm(false)
-        resetForm()
-        reset()
-    }
-
-
-    const handleAddOpenDialog = () => {
-        setVisible(true);
-        setStatusForm(false);
-        resetForm();
-    }
-
-
-
-
-    const acceptDelete = (id: string) => {
-        deleteEquipment(id, {
-            onSuccess: () => {
-                toast.current?.show({
-                    severity: 'success',
-                    summary: 'Deleted',
-                    detail: 'Equipment deleted successfully',
-                    life: 3000
-                });
-            },
-            onError: () => {
-                toast.current?.show({
-                    severity: 'error',
-                    summary: 'Error',
-                    detail: 'Delete failed',
-                    life: 3000
-                });
-            }
-        });
-    };
-
-    const rejectDelete = () => {
-        toast.current?.show({
-            severity: 'info',
-            summary: 'Cancelled',
-            detail: 'Deletion cancelled',
-            life: 2000
-        });
-    };
-
-
-    const confirmDelete = (id: string) => {
-        confirmDialog({
-            message: 'Are you sure you want to delete this society?',
-            header: 'Confirmation',
-            icon: 'pi pi-exclamation-triangle',
-            acceptLabel: 'Yes',
-            rejectLabel: 'No',
-            accept: () => acceptDelete(id),
-            reject: rejectDelete
-        });
-    };
-
-    const submitHandler = statusForm ? updatingEquipment : onSubmit;
 
     return (
         <div className="p-4">
@@ -211,16 +58,16 @@ export default function Home() {
             {/* Header Section */}
             <div className="flex justify-between items-center mb-4">
                 <div>
-                    <h2 className="text-2xl font-bold">Equipments Management</h2>
+                    <h2 className="text-2xl font-bold">Installation Management</h2>
                     <p className="text-gray-600 text-sm mt-1">
-                        Total: {equipments?.length || 0} Equipments
+                        Total: {plannings?.length || 0} Plannings
                     </p>
                 </div>
                 <Button
-                    label={"Add New equipment"}
+                    label={"Add New planning"}
                     icon="pi pi-plus"
                     severity="success"
-                    onClick={handleAddOpenDialog}
+                    onClick={() => install("12")}
                     className="h-10"
                     disabled={!user?.userId}
                 />
@@ -241,190 +88,182 @@ export default function Home() {
                 </div>
             )}
             {/* DataTable */}
-            {!isLoading && (
-                <DataTable
-                    value={equipments || []}
-                    scrollable
-                    size="small"
-                    // scrollHeight="600px"
-                    className="w-full"
-                    stripedRows
-                    showGridlines
-                    emptyMessage="No Projects found. Create your first Project!"
-                    scrollHeight="calc(100vh - 200px)"
-                >
-                    <Column
-                        header="#"
-                        body={(data, options) => options.rowIndex + 1}
-                        style={{ width: '60px', textAlign: 'center', height: 35 }}
-                        frozen
-                    />
-
-                    <Column field="name"  bodyStyle={{ fontSize: 10 }} headerStyle={{ fontSize: 10 }} header="Name" sortable style={{ width: 'auto', height: 35 }} />
-                    <Column field="model"  bodyStyle={{ fontSize: 10 }} headerStyle={{ fontSize: 10 }} header="Model" sortable style={{ width: 'auto', height: 35 }} />
-                    <Column field="vendor"  bodyStyle={{ fontSize: 10 }} headerStyle={{ fontSize: 10 }} header="Vendor" sortable style={{ width: 'auto', height: 35 }} />
-                    <Column field="category"  bodyStyle={{ fontSize: 10 }} headerStyle={{ fontSize: 10 }} header="Category" sortable style={{ width: 'auto', height: 35 }} />
-                    <Column field="unit"  bodyStyle={{ fontSize: 10 }} headerStyle={{ fontSize: 10 }} header="Unit" sortable style={{ width: 'auto', height: 35 }} />
 
 
+            <TabView>
+                <TabPanel header="Pending">
+                    {!isLoading && (
+                        <DataTable
+                            value={plannings || []}
+                            scrollable
+                            size="small"
+                            className="w-full custom-datatable"
+                            stripedRows
+                            showGridlines
+                            paginator rows={20} rowsPerPageOptions={[5, 10, 25, 50]}
+                            emptyMessage="No Projects found. Create your first Site!"
+                            scrollHeight="calc(100vh - 200px)"
 
-                    <Column field="createdAt"  bodyStyle={{ fontSize: 10 }} headerStyle={{ fontSize: 10 }} header="createdAt" sortable style={{ width: 'auto', height: 35 }} />
-                    <Column field="updatedAt"  bodyStyle={{ fontSize: 10 }} headerStyle={{ fontSize: 10 }} header="updatedAt" sortable style={{ width: 'auto', height: 35 }} />
+                  
 
-                    <Column
-                        header="Actions"
-                        body={(rowData) => (
-                            <div className="flex gap-2">
-                                <Button icon="pi pi-pencil" onClick={() => actionButtonEdit(rowData)} rounded text severity="info" tooltip="Edit" />
-                                <Button icon="pi pi-trash" onClick={() => confirmDelete(rowData?.id)} rounded text severity="danger" tooltip="Delete" />
-                            </div>
-                        )}
-                        style={{ width: '120px', textAlign: 'center', height: 35 }}
-                    />
-                </DataTable>
-            )}
+                        >
+                           
+                            <Column
+                                header="#"
+                                body={(data, options) => options.rowIndex + 1}
+                                style={{ width: '60px', textAlign: 'center', }}
+                                frozen
+                            />
 
-            {/* Dialog Form with React Hook Form */}
-            <Dialog
-                header={statusForm ? "Update Project info" : "Create New Project"}
-                visible={visible}
-                style={{ width: '450px' }}
-                onHide={handleDialogHide}
-                modal
+                            <Column
+                                header="Project code"
 
-                draggable={false}
-            >
+                                headerStyle={{ fontSize: 10 }}
+                                style={{ minWidth: '100px', height: 35 }}
+                                body={(rowData) => rowData?.project?.code || '-'}
+                                bodyStyle={{ fontSize: 10 }}
+                            />
 
-                <form className="flex flex-col gap-4" onSubmit={handleSubmit(submitHandler)}>
+                            <Column
+                                header="Scope"
+
+                                headerStyle={{ fontSize: 10 }}
+                                style={{ width: 'auto', height: 35 }}
+                                body={(rowData) => rowData?.scope || '-'}
+                                bodyStyle={{ fontSize: 10 }}
+                            />
+
+                            <Column
+
+                                header="Site NE Code"
+
+                                headerStyle={{ fontSize: 10 }}
+                                style={{ width: 'auto', height: 35 }}
+                                body={(rowData) => rowData?.siteNE?.code || '-'}
+                                bodyStyle={{ fontSize: 10 }}
+                            />
+
+                            <Column
+
+                                header="Site Name NE "
+                                sortable
+                                headerStyle={{ fontSize: 10 }}
+                                style={{ width: 'auto', height: 35 }}
+                                body={(rowData) => rowData?.siteNE?.name || '-'}
+                                bodyStyle={{ fontSize: 10 }}
+                            />
+
+                            <Column
+
+                                header="Activity Type "
+                                sortable
+                                headerStyle={{ fontSize: 10 }}
+                                style={{ width: 'auto', height: 35 }}
+                                body={(rowData) => rowData?.activityType || '-'}
+                                bodyStyle={{ fontSize: 10 }}
+                            />
+
+                            <Column
+
+                                header="Intervention Type "
+
+                                headerStyle={{ fontSize: 10 }}
+                                style={{ width: 'auto', height: 35 }}
+                                body={(rowData) => rowData?.interventionType || '-'}
+                                bodyStyle={{ fontSize: 10 }}
+                            />
+                            <Column
+
+                                header="Site FE Code"
+
+                                headerStyle={{ fontSize: 10 }}
+                                style={{ width: 'auto', height: 35 }}
+                                body={(rowData) => rowData?.siteNE?.code || '-'}
+                                bodyStyle={{ fontSize: 10 }}
+                            />
+
+                            <Column
+
+                                header="Site Name FE "
+
+                                headerStyle={{ fontSize: 10 }}
+                                style={{ width: 'auto', height: 35 }}
+                                body={(rowData) => rowData?.siteNE?.name || '-'}
+                                bodyStyle={{ fontSize: 10 }}
+                            />
+                            <Column
+
+                                header="Region"
+
+                                headerStyle={{ fontSize: 10 }}
+                                style={{ width: 'auto', height: 35 }}
+                                body={(rowData) => rowData?.siteNE?.region?.name || '-'}
+                                bodyStyle={{ fontSize: 10 }}
+                            />
+
+                            <Column
+
+                                header="Team"
+
+                                headerStyle={{ fontSize: 10 }}
+                                style={{ width: 'auto', height: 35 }}
+                                body={(rowData) => rowData?.team?.name || '-'}
+                                bodyStyle={{ fontSize: 10 }}
+                            />
 
 
-                    <div className="flex flex-col gap-2">
-                        <FormInputText
-                            name="name"
-                            control={control}
-                            errors={errors}
-                            label="Name *"
-                            placeholder="Enter equipment name * "
-                            disabled={isSubmitting}
-                        />
-                    </div>
-                    <div className="flex flex-col gap-2">
-                        <FormInputText
-                            name="model"
-                            control={control}
-                            errors={errors}
-                            label="Model *"
-                            placeholder="Enter equipment Model * "
-                            disabled={isSubmitting}
-                        />
-                    </div>
+                            <Column
 
-                    <div className="flex flex-col gap-2">
-                        <FormInputText
-                            name="vendor"
-                            control={control}
-                            errors={errors}
-                            label="vendor *"
-                            placeholder="Enter equipment vendor"
-                            disabled={isSubmitting}
-                        />
-                    </div>
-                    <div className="flex flex-col gap-2">
-                        <label htmlFor={"category"} className="font-medium">
-                            Catégorie *
-                        </label>
-                        <DropdownField
-                            name="category"
-                            control={control}
-                            options={EQUIPMENT_CATEGORIES || []}
-                            optionLabel="name"
-                            optionValue='value'
-                            placeholder="Select a category *"
-                            errors={errors}
-                        />
-                    </div>
+                                header="Date"
 
-                    <div className="flex flex-col gap-2">
-                        <label htmlFor={"subsidiaryId"} className="font-medium">
-                            Unit *
-                        </label>
-                        <DropdownField
-                            name="unit"
-                            control={control}
-                            options={EQUIPMENT_UNITS || []}
-                            optionLabel="name"
-                            optionValue='value'
-                            placeholder="Select an unit *"
-                            errors={errors}
-                        />
-                    </div>
+                                headerStyle={{ fontSize: 10 }}
+                                style={{ width: 'auto', height: 35 }}
+                                body={(rowData) => formatDateFR(rowData?.plannedDate || '-')}
+                                bodyStyle={{ fontSize: 10 }}
+                            />
+
+                            <Column
+
+                                header="Status"
+
+                                headerStyle={{ fontSize: 10 }}
+                                style={{ width: 'auto', height: 35 }}
+                                body={(rowData) => rowData.status}
+                                bodyStyle={{ fontSize: 10 }}
+                            />
 
 
+                            <Column
+                                header="Actions"
+                                headerStyle={{ fontSize: 10 }}
+                                body={(rowData) => (
+                                    <div className="flex gap-2">
+                                        <Button icon="pi pi-pencil" onClick={()=>install(rowData.id)} rounded text severity="info" tooltip="Edit" />
 
-
-
-                    {/* User Warning */}
-                    {!user?.userId && (
-                        <div className="p-3 bg-yellow-50 border border-yellow-200 rounded text-yellow-700 text-sm">
-                            <i className="pi pi-exclamation-triangle mr-2"></i>
-                            User information is loading...
-                        </div>
+                                    </div>
+                                )}
+                                style={{ width: 'auto', textAlign: 'center', height: 35 }}
+                            />
+                        </DataTable>
                     )}
-
-                    {/* Submit Button */}
-                    {!statusForm &&
-                        <FormSubmitButton
-                            label="Create equipment"
-                            loading={isPending}
-                            disabled={isPending || !user?.userId}
-                            severity='success'
-                        />
-
-                    }
-
-                    {statusForm && <FormSubmitButton
-                        label="Update Society"
-                        loading={isPending_update}
-                        disabled={isPending_update || !user?.userId}
-                        severity='info'
-                    />
-
-                    }
-
-                    {/* Success Message */}
-                    {isSuccess && !statusForm && (
-                        <div className="flex items-center gap-2 p-3 bg-green-50 border border-green-200 rounded text-green-700">
-                            <i className="pi pi-check-circle"></i>
-                            <span>Equipment created successfully!</span>
-                        </div>
-                    )}
-
-
-                    {isSuccess && statusForm && (
-                        <div className="flex items-center gap-2 p-3 bg-green-50 border border-green-200 rounded text-green-700">
-                            <i className="pi pi-check-circle"></i>
-                            <span>Society updated successfully!</span>
-                        </div>
-                    )}
-
-                    {/* Error Message */}
-                    {error && (
-                        <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded text-red-700">
-                            <i className="pi pi-times-circle"></i>
-                            <span>{error.message}</span>
-                        </div>
-                    )}
-
-
-                    {/* Error Message */}
-                    {errorUpdate && (
-                        <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded text-red-700">
-                            <i className="pi pi-times-circle"></i>
-                            <span>{errorUpdate.message}</span>
-                        </div>
-                    )}
-                </form>
-            </Dialog>
+                </TabPanel>
+                <TabPanel header="In Progress">
+                    <p className="m-0">
+                        Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium doloremque laudantium, totam rem aperiam,
+                        eaque ipsa quae ab illo inventore veritatis et quasi architecto beatae vitae dicta sunt explicabo. Nemo
+                        enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut fugit, sed quia consequuntur magni dolores eos qui
+                        ratione voluptatem sequi nesciunt. Consectetur, adipisci velit, sed quia non numquam eius modi.
+                    </p>
+                </TabPanel>
+                <TabPanel header="Completed">
+                    <p className="m-0">
+                        At vero eos et accusamus et iusto odio dignissimos ducimus qui blanditiis praesentium voluptatum deleniti atque corrupti
+                        quos dolores et quas molestias excepturi sint occaecati cupiditate non provident, similique sunt in
+                        culpa qui officia deserunt mollitia animi, id est laborum et dolorum fuga. Et harum quidem rerum facilis est et expedita distinctio.
+                        Nam libero tempore, cum soluta nobis est eligendi optio cumque nihil impedit quo minus.
+                    </p>
+                </TabPanel>
+            </TabView>
         </div>
     )
 }
